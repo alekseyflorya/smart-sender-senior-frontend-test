@@ -86,7 +86,9 @@ async function readJson(request: Request): Promise<unknown> {
   try {
     return await request.json();
   } catch {
-    return null;
+    // An empty object lets a missing or malformed body surface as
+    // per-field "required" errors instead of zod's generic root message.
+    return {};
   }
 }
 

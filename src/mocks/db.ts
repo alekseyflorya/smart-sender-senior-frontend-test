@@ -35,15 +35,17 @@ interface MockDb {
 }
 
 const CHANNELS = ['Telegram', 'Viber', 'Instagram'];
+// Five "Order …" events give 15 matches for the search "order",
+// i.e. two pages, so search and pagination can be shown together.
 const EVENTS = [
   'Order created',
   'Order paid',
   'Order shipped',
+  'Order delivered',
+  'Order cancelled',
   'Payment failed',
   'Subscriber added',
-  'Subscriber unsubscribed',
   'Message delivered',
-  'Message failed',
   'Chat closed',
 ];
 const SEED_START_MS = Date.UTC(2026, 0, 1);
