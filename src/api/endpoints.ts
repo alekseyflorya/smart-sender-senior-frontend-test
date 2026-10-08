@@ -80,11 +80,11 @@ export function createApi(config: HttpClientConfig) {
   }
 
   function getWebhook(id: number, signal?: AbortSignal): Promise<Webhook> {
-    return request<Webhook>(`/v1/webhooks/${String(id)}`, { signal });
+    return request<Webhook>(`/v1/webhooks/${id}`, { signal });
   }
 
   function updateWebhook(id: number, input: WebhookInput): Promise<Webhook> {
-    return request<Webhook>(`/v1/webhooks/${String(id)}`, {
+    return request<Webhook>(`/v1/webhooks/${id}`, {
       method: 'PUT',
       body: input,
     });

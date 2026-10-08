@@ -32,6 +32,12 @@ export default defineConfig([
         'error',
         { checksVoidReturn: { attributes: false } },
       ],
+      // Numbers in template strings (ids, statuses) are unambiguous;
+      // wrapping them in String() only adds noise.
+      '@typescript-eslint/restrict-template-expressions': [
+        'error',
+        { allowNumber: true },
+      ],
     },
   },
   {

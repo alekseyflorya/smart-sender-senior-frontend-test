@@ -8,6 +8,9 @@ import {
 /** Used when an error response does not match the contract's error format. */
 export const UNKNOWN_ERROR_TYPE = 'UnknownError';
 
+/** A contract error type, or UnknownError for a body outside the contract. */
+export type ApiErrorKind = ApiErrorType | typeof UNKNOWN_ERROR_TYPE;
+
 // Forms read field messages straight from `payload`, so the error body is
 // validated at this boundary instead of being trusted.
 const errorBodySchema = z.object({
@@ -20,7 +23,7 @@ const errorBodySchema = z.object({
 
 interface ApiErrorInit {
   status: number;
-  type: ApiErrorType | typeof UNKNOWN_ERROR_TYPE;
+  type: ApiErrorKind;
   message: string;
   payload?: FieldErrors;
 }
@@ -28,7 +31,7 @@ interface ApiErrorInit {
 /** An HTTP error response. Network failures and aborts are not wrapped. */
 export class ApiError extends Error {
   readonly status: number;
-  readonly type: ApiErrorType | typeof UNKNOWN_ERROR_TYPE;
+  readonly type: ApiErrorKind;
   /** Field messages from a 422; empty for other errors, so callers need no null checks. */
   readonly payload: FieldErrors;
 
@@ -54,8 +57,7 @@ export async function toApiError(response: Response): Promise<ApiError> {
       status: response.status,
       type: UNKNOWN_ERROR_TYPE,
       message:
-        response.statusText ||
-        `Request failed with status ${String(response.status)}`,
+        response.statusText || `Request failed with status ${response.status}`,
     });
   }
 

@@ -71,9 +71,12 @@ export function createHttpClient(config: HttpClientConfig) {
   ): Headers {
     const headers = new Headers(extra);
     headers.set(HEADERS.requestedWith, REQUESTED_WITH_VALUE);
-    if (hasBody) headers.set('Content-Type', 'application/json');
-    if (CSRF_PROTECTED_METHODS.has(method))
+    if (hasBody) {
+      headers.set('Content-Type', 'application/json');
+    }
+    if (CSRF_PROTECTED_METHODS.has(method)) {
       headers.set(HEADERS.csrfToken, csrfToken);
+    }
     return headers;
   }
 
@@ -115,11 +118,16 @@ export function createHttpClient(config: HttpClientConfig) {
   }
 
   // All requests that got 401 while a rotate is in flight await the same promise.
-  // Rotate is sent without any caller's AbortSignal: it is shared, so one
-  // cancelled request must not cancel it for the others.
   function rotateSession(): Promise<boolean> {
+    rotatePromise ??= startRotate();
+    return rotatePromise;
+  }
+
+  // Sent without any caller's AbortSignal: the rotate is shared, so one
+  // cancelled request must not cancel it for the others.
+  function startRotate(): Promise<boolean> {
     const body: FingerprintRequest = { fingerprint: config.getFingerprint() };
-    rotatePromise ??= request<undefined>(ROTATE_PATH, {
+    return request<undefined>(ROTATE_PATH, {
       method: 'POST',
       body,
       skipAuthRetry: true,
@@ -137,7 +145,6 @@ export function createHttpClient(config: HttpClientConfig) {
       .finally(() => {
         rotatePromise = null;
       });
-    return rotatePromise;
   }
 
   async function parseBody<T>(response: Response): Promise<T> {
