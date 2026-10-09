@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import type { Webhook } from '../../api/contract';
 import { paths } from '../../app/paths';
+import type { ListLinkState } from './listLink';
 
 interface WebhookTableProps {
   webhooks: Webhook[];
@@ -22,7 +23,10 @@ export function WebhookTable({ webhooks, listSearch }: WebhookTableProps) {
         {webhooks.map((webhook) => (
           <tr key={webhook.id}>
             <td>
-              <Link to={paths.webhook(webhook.id)} state={{ listSearch }}>
+              <Link
+                to={paths.webhook(webhook.id)}
+                state={{ listSearch } satisfies ListLinkState}
+              >
                 {webhook.name}
               </Link>
             </td>
