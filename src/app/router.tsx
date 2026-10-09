@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { LoginPage } from '../features/auth/LoginPage';
+import { WebhookListPage } from '../features/webhooks/WebhookListPage';
 import { paths } from './paths';
 import { RequireAuth } from './RequireAuth';
 
@@ -7,10 +8,7 @@ export const router = createBrowserRouter([
   { path: paths.login, element: <LoginPage /> },
   {
     element: <RequireAuth />,
-    children: [
-      // Placeholder until the list lands (stage 5).
-      { path: paths.webhooks, element: <h1>Webhooks</h1> },
-    ],
+    children: [{ path: paths.webhooks, element: <WebhookListPage /> }],
   },
   { path: '*', element: <Navigate to={paths.webhooks} replace /> },
 ]);
