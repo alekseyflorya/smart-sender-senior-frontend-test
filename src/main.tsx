@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './App';
+import { restoreSession } from './app/api';
+import { App } from './app/App';
 import './index.css';
 
 // There is no real backend, so the mock runs in every mode. A real project
@@ -8,6 +9,10 @@ import './index.css';
 // The dynamic import keeps MSW out of the main bundle in a separate chunk.
 const { worker } = await import('./mocks/browser');
 await worker.start({ onUnhandledRequest: 'bypass' });
+
+// Not awaited: the app renders right away and shows its loading state
+// until the session check settles.
+void restoreSession();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
