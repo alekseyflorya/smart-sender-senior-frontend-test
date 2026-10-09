@@ -37,11 +37,11 @@ pnpm test src/api/http.test.ts    # тести сесії, включно з т�
 | Сесія, rotate, повтори, CSRF | `src/api/http.ts` |
 | login → issue → `/v1/me` | `signIn` у `src/api/endpoints.ts` |
 | Стан сесії і реакція на її завершення | `src/features/auth/sessionStore.ts`, `src/app/api.ts` |
-| Список: URL, пошук, пагінація | `src/features/webhooks/useWebhookListParams.ts`, `SearchField.tsx` |
-| Редагування, 422 біля полів | `src/features/webhooks/WebhookForm.tsx`, `src/shared/setServerErrors.ts` |
+| Список: URL, пошук, пагінація | `src/features/webhooks/list/useWebhookListParams.ts`, `useSearchDraft.ts` |
+| Редагування, 422 біля полів | `src/features/webhooks/edit/WebhookForm.tsx`, `src/shared/setServerErrors.ts` |
 | Мок API | `src/mocks/handlers.ts`, `src/mocks/db.ts` |
 
-Шар `api/` не знає про React і роутер: про завершення сесії він повідомляє через `onSessionExpired`. `src/app/api.ts` є composition root: тут створюється єдиний екземпляр `api` і зв'язується зі стором сесії та `queryClient`, тому фічі імпортують `api` з `app/`. Мок і клієнт мають спільні типи з `api/contract.ts`, тож розбіжність у формі даних ловить компілятор.
+Фіча вебхуків розкладена за сценаріями, які відповідають маршрутам: `list/` і `edit/`, а спільні `queryKeys.ts` і `listLink.ts` лежать у корені фічі. Шар `api/` не знає про React і роутер: про завершення сесії він повідомляє через `onSessionExpired`. `src/app/api.ts` є composition root: тут створюється єдиний екземпляр `api` і зв'язується зі стором сесії та `queryClient`, тому фічі імпортують `api` з `app/`. Мок і клієнт мають спільні типи з `api/contract.ts`, тож розбіжність у формі даних ловить компілятор.
 
 ## Ключові рішення
 
@@ -105,7 +105,7 @@ sequenceDiagram
 - пізній 401 після успішного rotate повторюється без нового rotate, а пізній 401 із завершеної сесії падає без rotate; нова сесія знову проходить rotate;
 - 419: токен перезавантажується один раз, запит повторюється, другий 419 поспіль закінчується помилкою.
 
-Тести перевірені мутаціями: якщо прибрати дедуплікацію rotate, перевірку покоління, ліміт повторів, обробку 419 або `X-Requested-With`, падає щонайменше один тест. `listParams.test.ts` (10 тестів) перевіряє розбір параметрів списку з URL.
+Тести перевірені мутаціями: якщо прибрати дедуплікацію rotate, перевірку покоління, ліміт повторів, обробку 419 або `X-Requested-With`, падає щонайменше один тест. `src/features/webhooks/list/listParams.test.ts` (10 тестів) перевіряє розбір параметрів списку з URL.
 
 ## Припущення та відхилення від контракту
 
