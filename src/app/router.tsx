@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { LoginPage } from '../features/auth/LoginPage';
-import { WebhookEditPage } from '../features/webhooks/WebhookEditPage';
-import { WebhookListPage } from '../features/webhooks/WebhookListPage';
+import { WebhookEditPage } from '../features/webhooks/edit/WebhookEditPage';
+import { WebhookListPage } from '../features/webhooks/list/WebhookListPage';
 import { paths } from './paths';
 import { RequireAuth } from './RequireAuth';
 

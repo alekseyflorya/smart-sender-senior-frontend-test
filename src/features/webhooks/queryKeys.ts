@@ -1,4 +1,4 @@
-import type { ListParams } from './listParams';
+import type { ListParams } from './list/listParams';
 
 const all = ['webhooks'] as const;
 const lists = () => [...all, 'list'] as const;

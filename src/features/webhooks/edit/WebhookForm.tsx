@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router';
-import type { Webhook } from '../../api/contract';
-import { setServerErrors } from '../../shared/setServerErrors';
-import { TextField } from '../../shared/TextField';
+import type { Webhook } from '../../../api/contract';
+import { setServerErrors } from '../../../shared/setServerErrors';
+import { TextField } from '../../../shared/TextField';
 import { webhookFormSchema, type WebhookFormValues } from './schemas';
 import { useUpdateWebhook } from './useUpdateWebhook';
 

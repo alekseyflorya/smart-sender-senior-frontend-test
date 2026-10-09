@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
-import type { Webhook } from '../../api/contract';
-import { paths } from '../../app/paths';
-import type { ListLinkState } from './listLink';
+import type { Webhook } from '../../../api/contract';
+import { paths } from '../../../app/paths';
+import type { ListLinkState } from '../listLink';
 
 interface WebhookTableProps {
   webhooks: Webhook[];

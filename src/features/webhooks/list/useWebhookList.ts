@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { api } from '../../app/api';
+import { api } from '../../../app/api';
 import { PAGE_SIZE, type ListParams } from './listParams';
-import { webhookKeys } from './queryKeys';
+import { webhookKeys } from '../queryKeys';
 
 export function useWebhookList({ page, search }: ListParams) {
   return useQuery({

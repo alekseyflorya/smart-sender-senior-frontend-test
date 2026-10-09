@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router';
-import { ErrorMessage } from '../../shared/ErrorMessage';
-import { Loading } from '../../shared/Loading';
+import { ErrorMessage } from '../../../shared/ErrorMessage';
+import { Loading } from '../../../shared/Loading';
 import { Pagination } from './Pagination';
 import { SearchField } from './SearchField';
 import { useWebhookList } from './useWebhookList';

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { WebhookInput, WebhookList } from '../../api/contract';
-import { api } from '../../app/api';
-import { webhookKeys } from './queryKeys';
+import type { WebhookInput, WebhookList } from '../../../api/contract';
+import { api } from '../../../app/api';
+import { webhookKeys } from '../queryKeys';
 
 export function useUpdateWebhook(id: number) {
   const queryClient = useQueryClient();

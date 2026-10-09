@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../app/api';
-import { webhookKeys } from './queryKeys';
+import { api } from '../../../app/api';
+import { webhookKeys } from '../queryKeys';
 
 export function useWebhook(id: number) {
   return useQuery({

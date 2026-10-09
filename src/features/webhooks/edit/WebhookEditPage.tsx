@@ -1,9 +1,9 @@
 import { Link, useLocation, useParams } from 'react-router';
 import { z } from 'zod';
-import { isApiError } from '../../api/errors';
-import { ErrorMessage } from '../../shared/ErrorMessage';
-import { Loading } from '../../shared/Loading';
-import { getListHref } from './listLink';
+import { isApiError } from '../../../api/errors';
+import { ErrorMessage } from '../../../shared/ErrorMessage';
+import { Loading } from '../../../shared/Loading';
+import { getListHref } from '../listLink';
 import { useWebhook } from './useWebhook';
 import { WebhookForm } from './WebhookForm';
 
