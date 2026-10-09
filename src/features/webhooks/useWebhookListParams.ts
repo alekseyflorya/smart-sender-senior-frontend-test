@@ -2,6 +2,11 @@ import { useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import { FIRST_PAGE, parseListParams, toSearchParams } from './listParams';
 
+interface HistoryOptions {
+  /** Replace the current history entry instead of adding a new one. */
+  replace?: boolean;
+}
+
 /**
  * Page and search live only in the URL, so reload and back/forward restore
  * them for free. Every change is a new history entry unless asked otherwise.
@@ -19,7 +24,7 @@ export function useWebhookListParams() {
   }, [isCanonical, canonical, setSearchParams]);
 
   const setPage = useCallback(
-    (nextPage: number, options?: { replace?: boolean }) => {
+    (nextPage: number, options?: HistoryOptions) => {
       setSearchParams(toSearchParams({ page: nextPage, search }), options);
     },
     [search, setSearchParams],
@@ -27,8 +32,11 @@ export function useWebhookListParams() {
 
   // A new search starts from the first page.
   const setSearch = useCallback(
-    (nextSearch: string) => {
-      setSearchParams(toSearchParams({ page: FIRST_PAGE, search: nextSearch }));
+    (nextSearch: string, options?: HistoryOptions) => {
+      setSearchParams(
+        toSearchParams({ page: FIRST_PAGE, search: nextSearch }),
+        options,
+      );
     },
     [setSearchParams],
   );
