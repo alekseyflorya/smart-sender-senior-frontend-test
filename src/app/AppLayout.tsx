@@ -9,18 +9,21 @@ export function AppLayout({ user }: { user: User }) {
   return (
     <>
       <header className="app-header">
-        <span>{user.name}</span>
-        <button
-          type="button"
-          disabled={signOut.isPending}
-          onClick={() => {
-            signOut.mutate();
-          }}
-        >
-          {signOut.isPending ? 'Signing out…' : 'Sign out'}
-        </button>
+        <span className="app-title">Webhooks</span>
+        <div className="app-user">
+          <span>{user.name}</span>
+          <button
+            type="button"
+            disabled={signOut.isPending}
+            onClick={() => {
+              signOut.mutate();
+            }}
+          >
+            {signOut.isPending ? 'Signing out…' : 'Sign out'}
+          </button>
+        </div>
       </header>
-      <main>
+      <main className="app-main">
         <Outlet />
       </main>
     </>

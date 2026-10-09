@@ -1,3 +1,7 @@
 export function Loading() {
-  return <p role="status">Loading…</p>;
+  return (
+    <p role="status" className="loading">
+      Loading…
+    </p>
+  );
 }

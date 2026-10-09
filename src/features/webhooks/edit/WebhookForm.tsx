@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router';
 import type { Webhook } from '../../../api/contract';
 import { setServerErrors } from '../../../shared/setServerErrors';
 import { TextField } from '../../../shared/TextField';
+import { StatusBadge } from '../StatusBadge';
 import { webhookFormSchema, type WebhookFormValues } from './schemas';
 import { useUpdateWebhook } from './useUpdateWebhook';
 
@@ -50,7 +51,9 @@ export function WebhookForm({ webhook, listHref }: WebhookFormProps) {
         {...register('url')}
       />
       {/* Read-only: the contract's PUT accepts only name and url. */}
-      <p>Status: {webhook.active ? 'Active' : 'Inactive'}</p>
+      <p className="form-static">
+        Status: <StatusBadge active={webhook.active} />
+      </p>
       {errors.root?.server && (
         <p role="alert" className="form-error">
           {errors.root.server.message}

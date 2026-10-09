@@ -54,8 +54,12 @@ export function WebhookListPage() {
         {isError && (
           <ErrorMessage message="Could not refresh webhooks." onRetry={retry} />
         )}
-        {isPlaceholderData && <p role="status">Updating…</p>}
-        <div className={isPlaceholderData ? 'stale' : undefined}>
+        {isPlaceholderData && (
+          <p role="status" className="updating">
+            Updating…
+          </p>
+        )}
+        <div className={isPlaceholderData ? 'list-rows stale' : 'list-rows'}>
           <WebhookTable webhooks={data.data} listSearch={location.search} />
         </div>
         <Pagination

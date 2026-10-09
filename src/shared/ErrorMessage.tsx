@@ -5,7 +5,7 @@ interface ErrorMessageProps {
 
 export function ErrorMessage({ message, onRetry }: ErrorMessageProps) {
   return (
-    <div role="alert">
+    <div role="alert" className="error-message">
       <p>{message}</p>
       <button type="button" onClick={onRetry}>
         Retry

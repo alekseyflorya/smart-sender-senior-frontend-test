@@ -17,8 +17,10 @@ export function WebhookEditPage() {
   const id = webhookIdSchema.safeParse(params.id);
 
   return (
-    <section>
-      <Link to={listHref}>← Back to webhooks</Link>
+    <section className="edit-page">
+      <Link to={listHref} className="back-link">
+        ← Back to webhooks
+      </Link>
       {id.success ? (
         <WebhookEditor id={id.data} listHref={listHref} />
       ) : (
