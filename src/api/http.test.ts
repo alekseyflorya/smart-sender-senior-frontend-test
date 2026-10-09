@@ -7,11 +7,11 @@ import {
   it,
   vi,
 } from 'vitest';
-import { getResponse, http } from 'msw';
+import { getResponse, http, HttpResponse } from 'msw';
 import { expireSession, resetDb, TEST_CREDENTIALS } from '../mocks/db';
 import { handlers } from '../mocks/handlers';
 import { server } from '../mocks/node';
-import { HEADERS, REQUESTED_WITH_VALUE } from './contract';
+import { HEADERS, REQUESTED_WITH_VALUE, type ErrorBody } from './contract';
 import { createApi } from './endpoints';
 import { isApiError } from './errors';
 
@@ -19,6 +19,7 @@ import { isApiError } from './errors';
 const BASE_URL = 'http://localhost';
 const FINGERPRINT = '0123456789abcdef0123456789abcdef';
 const ROTATE_PATH = '/auth/token/rotate';
+const REVOKE_PATH = '/auth/token/revoke';
 
 interface RecordedExchange {
   method: string;
@@ -40,6 +41,36 @@ function recordExchanges(): RecordedExchange[] {
     });
   });
   return exchanges;
+}
+
+/** "METHOD /path status" lines, to compare a whole exchange sequence at once. */
+function summarize(exchanges: RecordedExchange[]): string[] {
+  return exchanges.map(
+    ({ method, path, status }) => `${method} ${path} ${status}`,
+  );
+}
+
+/** The HTTP status of each rejected request, or the settled status otherwise. */
+function rejectionStatuses(
+  results: PromiseSettledResult<unknown>[],
+): (number | string)[] {
+  return results.map((result) =>
+    result.status === 'rejected' && isApiError(result.reason)
+      ? result.reason.status
+      : result.status,
+  );
+}
+
+function tokenMismatch(): Response {
+  return HttpResponse.json<ErrorBody>(
+    {
+      error: {
+        type: 'TokenMismatchException',
+        message: 'CSRF token mismatch.',
+      },
+    },
+    { status: 419 },
+  );
 }
 
 function rotationsIn(exchanges: RecordedExchange[]): RecordedExchange[] {
@@ -139,13 +170,29 @@ describe('session rotation', () => {
 
     const results = await Promise.allSettled([api.getMe(), api.getWebhook(1)]);
 
-    const failureStatuses = results.map((result) =>
-      result.status === 'rejected' && isApiError(result.reason)
-        ? result.reason.status
-        : result.status,
-    );
-    expect(failureStatuses).toEqual([401, 401]);
+    expect(rejectionStatuses(results)).toEqual([401, 401]);
     expect(rotationsIn(exchanges).map(({ status }) => status)).toEqual([400]);
+    expect(onSessionExpired).toHaveBeenCalledTimes(1);
+  });
+
+  it('ends the session once when both retries get 401 after a successful rotate', async () => {
+    const { api, onSessionExpired } = createTestApi();
+    await api.signIn(TEST_CREDENTIALS);
+    expireSession();
+    // The rotate reports success but leaves the session expired,
+    // so both retries get 401 again.
+    server.use(
+      http.post(
+        `*${ROTATE_PATH}`,
+        () => new HttpResponse(null, { status: 200 }),
+      ),
+    );
+    const exchanges = recordExchanges();
+
+    const results = await Promise.allSettled([api.getMe(), api.getWebhook(1)]);
+
+    expect(rejectionStatuses(results)).toEqual([401, 401]);
+    expect(rotationsIn(exchanges).map(({ status }) => status)).toEqual([200]);
     expect(onSessionExpired).toHaveBeenCalledTimes(1);
   });
 
@@ -209,5 +256,37 @@ describe('session rotation', () => {
     expect(user.email).toBe(TEST_CREDENTIALS.email);
     expect(rotationsIn(exchanges).map(({ status }) => status)).toEqual([200]);
     expect(onSessionExpired).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('CSRF', () => {
+  it('reloads the token once on 419 and retries the request', async () => {
+    const { api } = createTestApi();
+    server.use(http.post(`*${REVOKE_PATH}`, tokenMismatch, { once: true }));
+    const exchanges = recordExchanges();
+
+    await api.signOut();
+
+    expect(summarize(exchanges)).toEqual([
+      'GET /csrf 204',
+      `POST ${REVOKE_PATH} 419`,
+      'GET /csrf 204',
+      `POST ${REVOKE_PATH} 204`,
+    ]);
+  });
+
+  it('fails without a third attempt when the retry gets 419 again', async () => {
+    const { api } = createTestApi();
+    server.use(http.post(`*${REVOKE_PATH}`, tokenMismatch));
+    const exchanges = recordExchanges();
+
+    await expect(api.signOut()).rejects.toMatchObject({ status: 419 });
+
+    expect(summarize(exchanges)).toEqual([
+      'GET /csrf 204',
+      `POST ${REVOKE_PATH} 419`,
+      'GET /csrf 204',
+      `POST ${REVOKE_PATH} 419`,
+    ]);
   });
 });
