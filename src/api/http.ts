@@ -12,9 +12,8 @@ export interface HttpClientConfig {
   getFingerprint: () => string;
   /**
    * Called when the session cannot be restored: rotate failed, or a request
-   * got 401 again after its single retry. It can fire more than once for one
-   * logical expiry (two retried requests both getting 401, or a late 401
-   * arriving after a failed rotate), so the handler must be idempotent.
+   * got 401 again after its single retry. Fires exactly once per ended
+   * session; late 401s from that session fail without calling it again.
    */
   onSessionExpired: () => void;
 }
@@ -49,10 +48,15 @@ const CSRF_PROTECTED_METHODS: ReadonlySet<HttpMethod> = new Set([
 export function createHttpClient(config: HttpClientConfig) {
   let csrfPromise: Promise<string> | null = null;
   let rotatePromise: Promise<boolean> | null = null;
-  // Incremented after every successful rotate. Each request remembers the
-  // generation it was sent in: if its 401 arrives after a rotate has already
-  // completed, it retries straight away instead of starting a second rotate.
+  // Incremented after every successful rotate and every new session. Each
+  // request remembers the generation it was sent in: if its 401 arrives after
+  // a rotate has already completed, it retries straight away instead of
+  // starting a second rotate.
   let sessionGeneration = 0;
+  // The generation whose session has ended (rotate failed, or a retry got
+  // 401 again). A late 401 sent in it fails at once: no new rotate, no second
+  // onSessionExpired.
+  let endedGeneration: number | null = null;
 
   function buildUrl(path: string, query: RequestOptions['query'] = {}): string {
     const params = new URLSearchParams();
@@ -117,6 +121,11 @@ export function createHttpClient(config: HttpClientConfig) {
     return csrfPromise && csrfPromise !== stale ? csrfPromise : loadCsrf();
   }
 
+  function endSession(generation: number): void {
+    endedGeneration = generation;
+    config.onSessionExpired();
+  }
+
   // All requests that got 401 while a rotate is in flight await the same promise.
   function rotateSession(): Promise<boolean> {
     rotatePromise ??= startRotate();
@@ -126,6 +135,7 @@ export function createHttpClient(config: HttpClientConfig) {
   // Sent without any caller's AbortSignal: the rotate is shared, so one
   // cancelled request must not cancel it for the others.
   function startRotate(): Promise<boolean> {
+    const generation = sessionGeneration;
     const body: FingerprintRequest = { fingerprint: config.getFingerprint() };
     return request<undefined>(ROTATE_PATH, {
       method: 'POST',
@@ -138,7 +148,7 @@ export function createHttpClient(config: HttpClientConfig) {
           return true;
         },
         () => {
-          config.onSessionExpired();
+          endSession(generation);
           return false;
         },
       )
@@ -187,9 +197,11 @@ export function createHttpClient(config: HttpClientConfig) {
     }
 
     if (response.status === 401 && !skipAuthRetry) {
+      if (generation === endedGeneration) throw await toApiError(response);
+
       // Exactly one retry: a second 401 ends the session instead of looping.
       if (retry.authRetried) {
-        config.onSessionExpired();
+        endSession(generation);
         throw await toApiError(response);
       }
 
@@ -207,7 +219,15 @@ export function createHttpClient(config: HttpClientConfig) {
     return send<T>(path, options, { csrfRetried: false, authRetried: false });
   }
 
-  return { request };
+  /**
+   * Called after a successful issue. The new session gets its own generation,
+   * so it is not mistaken for one whose rotate failed earlier.
+   */
+  function markSessionStarted(): void {
+    sessionGeneration += 1;
+  }
+
+  return { request, markSessionStarted };
 }
 
 export type HttpClient = ReturnType<typeof createHttpClient>;

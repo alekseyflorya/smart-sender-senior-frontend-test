@@ -58,6 +58,24 @@ function createGate() {
   return { opened, open };
 }
 
+/**
+ * The server answers the next GET to `path` at once, but the response reaches
+ * the client only when the gate opens: a 401 "delivered late" by the network.
+ */
+function deliverLate(path: string, gate: Promise<void>): void {
+  server.use(
+    http.get(
+      `*${path}`,
+      async ({ request }) => {
+        const response = await getResponse(handlers, request);
+        await gate;
+        return response;
+      },
+      { once: true },
+    ),
+  );
+}
+
 function createTestApi() {
   const onSessionExpired = vi.fn();
   const api = createApi({
@@ -142,19 +160,7 @@ describe('session rotation', () => {
     expireSession();
 
     const lateDelivery = createGate();
-    server.use(
-      http.get(
-        '*/v1/webhooks',
-        async ({ request }) => {
-          // The server answers immediately (401, session expired)...
-          const response = await getResponse(handlers, request);
-          // ...but the response reaches the client only when the test opens the gate.
-          await lateDelivery.opened;
-          return response;
-        },
-        { once: true },
-      ),
-    );
+    deliverLate('/v1/webhooks', lateDelivery.opened);
     const exchanges = recordExchanges();
 
     const webhooksRequest = api.listWebhooks({ page: 1, limit: 10 });
@@ -166,5 +172,42 @@ describe('session rotation', () => {
     expect(webhooks.data).toHaveLength(10);
     expect(rotationsIn(exchanges)).toHaveLength(1);
     expect(onSessionExpired).not.toHaveBeenCalled();
+  });
+
+  it('fails a late 401 from an ended session without another rotate', async () => {
+    // Scenario: the session is revoked; /v1/me gets 401, rotate fails with 400
+    // and the session ends. Only then does the webhooks 401, sent in that same
+    // session, arrive. It must fail at once, not rotate and expire again.
+    const { api, onSessionExpired } = createTestApi();
+    await api.signIn(TEST_CREDENTIALS);
+    await api.signOut();
+
+    const lateDelivery = createGate();
+    deliverLate('/v1/webhooks', lateDelivery.opened);
+    const exchanges = recordExchanges();
+
+    const webhooksRequest = api.listWebhooks({ page: 1, limit: 10 });
+    await expect(api.getMe()).rejects.toMatchObject({ status: 401 });
+    lateDelivery.open();
+    await expect(webhooksRequest).rejects.toMatchObject({ status: 401 });
+
+    expect(rotationsIn(exchanges).map(({ status }) => status)).toEqual([400]);
+    expect(onSessionExpired).toHaveBeenCalledTimes(1);
+  });
+
+  it('rotates again in a new session after the previous one ended', async () => {
+    const { api, onSessionExpired } = createTestApi();
+    await api.signIn(TEST_CREDENTIALS);
+    await api.signOut();
+    await expect(api.getMe()).rejects.toMatchObject({ status: 401 });
+
+    await api.signIn(TEST_CREDENTIALS);
+    expireSession();
+    const exchanges = recordExchanges();
+    const user = await api.getMe();
+
+    expect(user.email).toBe(TEST_CREDENTIALS.email);
+    expect(rotationsIn(exchanges).map(({ status }) => status)).toEqual([200]);
+    expect(onSessionExpired).toHaveBeenCalledTimes(1);
   });
 });

@@ -23,7 +23,7 @@ export interface WebhookListParams {
 }
 
 export function createApi(config: HttpClientConfig) {
-  const { request } = createHttpClient(config);
+  const { request, markSessionStarted } = createHttpClient(config);
 
   function getMe(signal?: AbortSignal): Promise<User> {
     return request<User>('/v1/me', { signal });
@@ -56,6 +56,7 @@ export function createApi(config: HttpClientConfig) {
       body: issueBody,
       skipAuthRetry: true,
     });
+    markSessionStarted();
 
     return getMe();
   }
