@@ -50,9 +50,15 @@ const issueSessionSchema = z.object({
 
 const fingerprintBodySchema = z.object({ fingerprint: fingerprintSchema });
 
+const INVALID_URL_MESSAGE = 'The url must be a valid URL.';
+
 const webhookInputSchema = z.object({
   name: requiredString('name', { trim: true }),
-  url: z.url({ protocol: /^https?$/, error: 'The url must be a valid URL.' }),
+  // Trimmed before validation, the same way the client form does it.
+  url: z
+    .string({ error: INVALID_URL_MESSAGE })
+    .trim()
+    .pipe(z.url({ protocol: /^https?$/, error: INVALID_URL_MESSAGE })),
 });
 
 // Typed as a plain Response on purpose: MSW infers a handler's body type from its
