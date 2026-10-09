@@ -114,6 +114,16 @@ function findWebhook(id: string): Webhook | undefined {
   return db.webhooks.find((webhook) => String(webhook.id) === id);
 }
 
+// Beyond the contract: a rule only the server can check, so a 422 next to a
+// field can be seen in the UI (the client already validates the format rules).
+// The webhook itself is excluded, so saving it unchanged still succeeds.
+function isNameTaken(name: string, exceptId: number): boolean {
+  const normalized = name.toLowerCase();
+  return db.webhooks.some(
+    (other) => other.id !== exceptId && other.name.toLowerCase() === normalized,
+  );
+}
+
 // Wildcard origins let the same handlers match relative URLs in the browser
 // and absolute URLs in Node, where fetch requires them.
 export const handlers = [
@@ -270,6 +280,9 @@ export const handlers = [
 
     const result = webhookInputSchema.safeParse(await readJson(request));
     if (!result.success) return validationError(result.error);
+    if (isNameTaken(result.data.name, webhook.id)) {
+      return errorResponse(422, { name: ['The name has already been taken.'] });
+    }
 
     Object.assign(webhook, result.data);
     return HttpResponse.json<Webhook>(webhook);
