@@ -10,6 +10,7 @@ export const webhookFormSchema = z.object({
     .string()
     .trim()
     .pipe(z.url({ protocol: /^https?$/, error: 'Enter a valid http(s) URL.' })),
+  active: z.boolean(),
 });
 
 export type WebhookFormValues = z.infer<typeof webhookFormSchema>;

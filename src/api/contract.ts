@@ -58,6 +58,7 @@ export interface FingerprintRequest {
 export interface WebhookInput {
   name: string;
   url: string;
+  active: boolean;
 }
 
 export const API_ERROR_TYPES = {

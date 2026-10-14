@@ -23,7 +23,7 @@ export function WebhookForm({ webhook, listHref }: WebhookFormProps) {
     formState: { errors, isSubmitting },
   } = useForm<WebhookFormValues>({
     resolver: zodResolver(webhookFormSchema),
-    defaultValues: { name: webhook.name, url: webhook.url },
+    defaultValues: { name: webhook.name, url: webhook.url, active: webhook.active },
   });
 
   async function onSubmit(values: WebhookFormValues) {
@@ -37,34 +37,57 @@ export function WebhookForm({ webhook, listHref }: WebhookFormProps) {
     void navigate(listHref, { replace: true });
   }
 
+  async function onSwitchStatus(value: boolean) {
+    try {
+      const {name, url} = webhook;
+      await updateWebhook.mutateAsync({ name, url, active: !value });
+    } catch (error) {
+      setServerErrors(error, setError, ['name', 'url', 'active']);
+      return;
+    }
+  }
+
   return (
-    <form noValidate onSubmit={handleSubmit(onSubmit)}>
-      <TextField
-        label="Name"
-        error={errors.name?.message}
-        {...register('name')}
-      />
-      <TextField
-        label="URL"
-        type="url"
-        error={errors.url?.message}
-        {...register('url')}
-      />
-      {/* Read-only: the contract's PUT accepts only name and url. */}
-      <p className="form-static">
-        Status: <StatusBadge active={webhook.active} />
-      </p>
-      {errors.root?.server && (
-        <p role="alert" className="form-error">
-          {errors.root.server.message}
+    <>
+      <form noValidate onSubmit={handleSubmit(onSubmit)}>
+        <TextField
+          label="Name"
+          error={errors.name?.message}
+          {...register('name')}
+        />
+        <TextField
+          label="URL"
+          type="url"
+          error={errors.url?.message}
+          {...register('url')}
+        />
+        {/* Read-only: the contract's PUT accepts only name and url. */}
+        <p className="form-static">
+          Status: <StatusBadge active={webhook.active} />
         </p>
-      )}
-      <div className="form-actions">
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving…' : 'Save'}
-        </button>
-        <Link to={listHref}>Cancel</Link>
-      </div>
-    </form>
+        {errors.active?.message && (
+          <p role="alert" className="form-error">
+            {errors.active.message}
+          </p>
+        )}
+        {errors.root?.server && (
+          <p role="alert" className="form-error">
+            {errors.root.server.message}
+          </p>
+        )}
+        <div className="form-actions">
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Saving…' : 'Save'}
+          </button>
+          <Link to={listHref}>Cancel</Link>
+        </div>
+      </form>
+      <button
+        onClick={() => onSwitchStatus(webhook.active)}
+        disabled={isSubmitting}
+      >
+        Switch status
+      </button>
+    </>
   );
 }
